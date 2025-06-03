@@ -22,7 +22,7 @@ flowchart TD
 
 ## ✨ Features
 - ✅ Auto-fetch MR diff & description
-- 🤖 GPT-4-based code review
+- 🤖 GPT-4-based code review [OpenAI / Github Models]
 - 💬 Inline comments to GitLab MR
 - 🧩 GitLab CI/CD ready
 - 🏷️ Adds badge label `ai-reviewed:pass|fail`
