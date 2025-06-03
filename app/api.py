@@ -11,6 +11,7 @@ from openai import OpenAI
 import re
 import pandas as pd
 from typing import Optional
+from app.llm_client import LLMClient
 
 from config.config import settings
 
@@ -33,6 +34,7 @@ client = OpenAI(
 )
 
 templates = Jinja2Templates(directory="templates")
+llm = LLMClient()
 
 class ReviewRequest(BaseModel):
     mr_iid: int
@@ -44,7 +46,7 @@ async def review_mr(payload: ReviewRequest):
     if not diff:
         return JSONResponse(status_code=400, content={"error": "Empty diff"})
 
-    ai_response = call_gpt_for_review(diff)
+    ai_response = call_llm_for_review(diff)
     post_comments_to_mr(mr_iid, ai_response.get("comments", []), sha_info)
     log_review(mr_iid, ai_response)
     update_badge_status(mr_iid, ai_response.get("pass", False))
@@ -67,8 +69,19 @@ def get_mr_diff(mr_iid):
     sha_info = data.get("diff_refs", {})
     return combined_diff, sha_info
 
-def call_gpt_for_review(diff_text):
-    prompt = f"""
+def call_llm_for_review(diff_text):
+    prompt = build_review_prompt(diff_text)
+    try:
+        raw_response = llm.chat(prompt)
+        print("==== GPT RESPONSE ====\n", raw_response)
+        return parse_ai_response(raw_response)
+    except Exception as e:
+        print("LLM call failed:", e)
+        return {"summary": "LLM error", "pass": False, "comments": []}
+
+def build_review_prompt(diff_text: str) -> str:
+    diff = diff_text[:6000]  # truncate for safety
+    return f"""
 You are an expert code reviewer tasked with reviewing a pull request.
 
 You are given the following:
@@ -116,29 +129,8 @@ Your response MUST be a valid JSON with the following structure:
 }}
 
 ## Diff:
-{diff_text[:6000]}  # truncate if too long
+{diff}
 """
-    try:
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-        )
-        raw = response.choices[0].message.content.strip()
-        print("==== GPT RESPONSE ====")
-        print(raw)
-
-        match = re.search(r"```json\n(.*?)```", raw, re.DOTALL)
-        if match:
-            return json.loads(match.group(1))
-        else:
-            return json.loads(raw)
-    except json.JSONDecodeError as e:
-        print("JSON parse error:", e)
-        return {"summary": "Parse failed", "pass": False, "comments": []}
-    except Exception as e:
-        print("GPT call failed:", e)
-        return {"summary": "Call failed", "pass": False, "comments": []}
 
 def format_comment_with_fix(c: dict) -> str:
     body = c["message"]
@@ -146,29 +138,13 @@ def format_comment_with_fix(c: dict) -> str:
         body += f"\n\n```diff\n{c['fix']}\n```"
     return body
 
-# def post_comments_to_mr(mr_iid, comments, sha_info):
-#     url = f"{GITLAB_API}/projects/{PROJECT_ID}/merge_requests/{mr_iid}/discussions"
-#     headers = {"PRIVATE-TOKEN": GITLAB_TOKEN}
-
-#     base_sha = sha_info.get("base_sha")
-#     start_sha = sha_info.get("start_sha")
-#     head_sha = sha_info.get("head_sha")
-
-#     for c in comments:
-#         payload = {
-#             "body": c["message"],
-#             "position": {
-#                 "position_type": "text",
-#                 "base_sha": base_sha,
-#                 "start_sha": start_sha,
-#                 "head_sha": head_sha,
-#                 "new_path": c["file"],
-#                 "new_line": c["line"]
-#             }
-#         }
-#         resp = requests.post(url, json=payload, headers=headers)
-#         if resp.status_code != 201:
-#             print("Failed to post comment:", resp.text)
+def parse_ai_response(raw_resp: dict) -> dict:
+    if isinstance(raw_resp, dict) and "comments" in raw_resp:
+        return raw_resp
+    try:
+        return json.loads(raw_resp)
+    except Exception:
+        return {"summary": "Failed to parse AI response", "pass": False, "comments": []}
 
 def post_comments_to_mr(mr_iid, comments, sha_info):
     url = f"{GITLAB_API}/projects/{PROJECT_ID}/merge_requests/{mr_iid}/discussions"
@@ -236,7 +212,7 @@ async def gitlab_webhook(request: Request, x_gitlab_token: str = Header(None)):
     if not diff:
         return {"status": "no diff"}
 
-    ai_response = call_gpt_for_review(diff)
+    ai_response = call_llm_for_review(diff)
     post_comments_to_mr(mr_iid, ai_response.get("comments", []), sha_info)
     log_review(mr_iid, ai_response)
     update_badge_status(mr_iid, ai_response.get("pass", False))
