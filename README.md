@@ -1,5 +1,4 @@
 # GitLab AI Code Reviewer
-[![GitLab pipeline status](https://img.shields.io/badge/GitLab%20CI-Auto--Review-green?logo=gitlab)](https://gitlab.sendo.vn)
 
 [GitLab Demo](https://gitlab.com/nvlinh99/test-review-code/-/merge_requests)
 
