@@ -1,0 +1,25 @@
+services:
+  ai-review-backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ..:/app
+    depends_on:
+      - ai-review-db
+    environment:
+      - POSTGRES_DSN=abc
+      - OPENAI_API_KEY=xxx
+      - GITLAB_API=xxx
+      - GITLAB_TOKEN=xxx
+      - GITLAB_WEBHOOK_SECRET=xxx
+      - PROJECT_ID=123
+
+  ai-review-db:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres

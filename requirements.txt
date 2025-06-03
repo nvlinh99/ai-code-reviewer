@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+openai
+requests
+python-dotenv
+psycopg2-binary
+pydantic-settings
+jinja2
+pdfkit

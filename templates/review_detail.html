@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Review Details - MR {{ review.mr_iid }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            margin: 0;
+            padding: 32px;
+            background-color: #f8f9fa; /* Lighter gray background */
+            color: #212529; /* Darker text color for better contrast */
+        }
+        h1, h3 {
+            color: #343a40; /* Slightly softer black for headings */
+            font-weight: 600;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 24px;
+        }
+        h3 {
+            font-size: 20px;
+            margin-top: 32px;
+            margin-bottom: 16px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+            border: 1px solid #dee2e6; /* Subtle border */
+            border-radius: 8px; /* Rounded corners */
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Softer shadow */
+            margin-bottom: 24px;
+        }
+        li {
+            padding: 12px 16px; /* Increased padding */
+            border-bottom: 1px solid #e9ecef; /* Lighter border for list items */
+        }
+        li:last-child {
+            border-bottom: none; /* Remove border for the last item */
+        }
+        li strong {
+            color: #495057; /* Softer color for strong text */
+            margin-right: 8px;
+        }
+        form {
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 24px; /* Increased padding */
+            border-radius: 8px; /* Rounded corners */
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        label {
+            display: block;
+            margin-bottom: 8px; /* Increased margin */
+            font-weight: 500; /* Slightly less bold */
+            color: #495057;
+        }
+
+        /* Styles for radio button icons */
+        .rating-radios {
+            display: flex;
+            justify-content: flex-start; /* Align items to the start */
+            gap: 10px; /* Space between icons */
+            margin-bottom: 20px;
+        }
+
+        .rating-radios input[type="radio"] {
+            display: none; /* Hide the actual radio button */
+        }
+
+        .rating-radios label {
+            cursor: pointer;
+            font-size: 28px; /* Adjust icon size */
+            color: #adb5bd; /* Default icon color (grey) */
+            transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+            padding: 5px;
+            display: flex; /* For alignment if text is added */
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 0; /* Override general label margin */
+        }
+        
+        .rating-radios label .icon-text {
+            font-size: 12px;
+            color: #495057;
+            margin-top: 4px;
+        }
+
+        .rating-radios input[type="radio"]:checked + label {
+            color: #007bff; /* Color for selected icon (blue) */
+            transform: scale(1.1); /* Slightly enlarge selected icon */
+        }
+        
+        .rating-radios input[type="radio"]:checked + label .icon-text {
+            color: #007bff; /* Match icon color on selection */
+        }
+
+        .rating-radios input[type="radio"]:hover + label {
+            color: #5fa8ff; /* Lighter blue on hover */
+        }
+
+        /* Specific icon colors on selection if desired, or use a single color like above */
+        /* Example for individual selected colors:
+        #rating-5:checked + label { color: #28a745; } // Green for Excellent
+        #rating-4:checked + label { color: #84d88a; } // Lighter Green for Good
+        #rating-3:checked + label { color: #ffc107; } // Yellow for Average
+        #rating-2:checked + label { color: #fd7e14; } // Orange for Poor
+        #rating-1:checked + label { color: #dc3545; } // Red for Wrong
+        */
+
+        select, input[type="number"] { /* Apply to select as well */
+            width: 100%; /* Full width */
+            padding: 10px 12px; /* Adjusted padding */
+            margin-bottom: 16px; /* Increased margin */
+            border: 1px solid #ced4da; /* Standard border color */
+            border-radius: 6px; /* Rounded corners */
+            box-sizing: border-box;
+            font-size: 16px;
+            background-color: #fff;
+            color: #495057;
+        }
+        select:focus, input[type="number"]:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+        button[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px; /* Adjusted padding */
+            border: none;
+            border-radius: 6px; /* Rounded corners */
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.15s ease-in-out;
+        }
+        button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px; /* Increased margin */
+            font-weight: 500;
+        }
+        a:hover {
+            text-decoration: underline;
+            color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Review Details</h1>
+    <ul>
+        <li><strong>MR IID:</strong> {{ review.mr_iid }}</li>
+        <li><strong>Project:</strong> {{ review.project_id }}</li>
+        <li><strong>Status:</strong> {{ 'PASS' if review.passed else 'FAIL' }}</li>
+        <li><strong>Comments:</strong> {{ review.comment_count }}</li>
+        <li><strong>Rating:</strong> {{ review.feedback_rating }}</li>
+        <li><strong>Created At:</strong> {{ review.created_at }}</li>
+    </ul>
+
+    <h3>Submit Feedback</h3>
+    <form method="POST" action="/api/dashboard/{{ review.mr_iid }}/feedback">
+      <label for="rating-container">Was the AI suggestion helpful?</label> <!-- Changed 'for' to a general container or remove if not needed -->
+      <div class="rating-radios" id="rating-container">
+        <input type="radio" id="rating-1" name="rating" value="1">
+        <label for="rating-1" title="Wrong">
+            <span>😞</span>
+            <span class="icon-text">Wrong</span>
+        </label>
+
+        <input type="radio" id="rating-2" name="rating" value="2">
+        <label for="rating-2" title="Poor">
+            <span>🙁</span>
+            <span class="icon-text">Poor</span>
+        </label>
+
+        <input type="radio" id="rating-3" name="rating" value="3">
+        <label for="rating-3" title="Average">
+            <span>😐</span>
+            <span class="icon-text">Average</span>
+        </label>
+
+        <input type="radio" id="rating-4" name="rating" value="4">
+        <label for="rating-4" title="Good">
+            <span>🙂</span>
+            <span class="icon-text">Good</span>
+        </label>
+
+        <input type="radio" id="rating-5" name="rating" value="5">
+        <label for="rating-5" title="Excellent">
+            <span>😄</span>
+            <span class="icon-text">Excellent</span>
+        </label>
+      </div>
+      <button type="submit">Submit</button>
+    </form>
+    
+    <br>
+    <a href="/api/dashboard">← Back to Dashboard</a>
+</body>
+</html>

@@ -1,0 +1,22 @@
+image: python:3.11
+
+stages:
+  - ai_review
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+before_script:
+  - python -V
+  - pip install --upgrade pip
+  - pip install -r requirements.txt
+
+ai_review:
+  stage: ai_review
+  script:
+    - echo "Trigger AI Review for MR IID: $CI_MERGE_REQUEST_IID"
+    - curl -X POST "$AI_REVIEW_API_URL/api/review" \
+        -H "Content-Type: application/json" \
+        -d "{\"mr_iid\": $CI_MERGE_REQUEST_IID}"
+  only:
+    - merge_requests

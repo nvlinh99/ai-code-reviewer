@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Review Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        h1 {
+            color: #007bff;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden; /* Ensures border-radius is applied to table corners */
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            text-align: center;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #e9ecef;
+        }
+        td a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        td a:hover {
+            text-decoration: underline;
+        }
+        .pass {
+            color: #28a745; /* Green */
+            font-weight: bold;
+        }
+        .fail {
+            color: #dc3545; /* Red */
+            font-weight: bold;
+        }
+        .chart-container {
+            display: flex;
+            gap: 40px;
+            margin: 2.5rem auto; /* Centered and more margin */
+            justify-content: center;
+            align-items: flex-start; /* Align items at the start */
+            flex-wrap: wrap; /* Allow charts to wrap on smaller screens */
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .chart-container canvas {
+            max-width: 350px; /* Slightly larger charts */
+            max-height: 350px;
+            animation: fadeInScale 1s ease-out;
+        }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        form {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+        select {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+        }
+        select:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+
+        .export-button-container {
+            margin-top: 2rem;
+            margin-bottom: 1rem; /* Added margin below */
+            text-align: left; /* Align to the left */
+        }
+
+        .export-button-container button, .pagination a {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .export-button-container button:hover, .pagination a:hover {
+            background-color: #0056b3;
+        }
+        .export-button-container button a { /* Ensure link inside button is styled correctly */
+            color: white;
+            text-decoration: none;
+        }
+
+        .pagination {
+            margin-top: 2rem;
+            display: flex;
+            justify-content: center; /* Center pagination */
+            align-items: center;
+            gap: 10px; /* Space between Prev, |, Next */
+        }
+        .pagination a[style*="pointer-events:none"] {
+            background-color: #6c757d; /* Disabled look */
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+        .pagination span { /* For the separator */
+            color: #6c757d;
+            font-size: 1.2em;
+        }
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>AI Review Dashboard</h1>
+
+    <form method="get" action="/api/dashboard">
+        <label for="passed">Filter by Status:</label>
+        <select name="passed" id="passed" onchange="this.form.submit()">
+            <option value="" {% if passed is none %}selected{% endif %}>All</option>
+            <option value="true" {% if passed == True %}selected{% endif %}>Passed</option>
+            <option value="false" {% if passed == False %}selected{% endif %}>Failed</option>
+        </select>
+    </form>
+
+    <div class="export-button-container">
+        <button><a href="/api/dashboard/export/excel">📥 Export Excel</a></button>
+    </div>
+
+    <!-- <div style="margin-top:2rem;">
+        <a href="/api/dashboard/export/pdf">📥 Export PDF</a>
+    </div> -->
+
+    <div class="chart-container">
+        <canvas id="pieChart"></canvas>
+        <canvas id="barChart"></canvas>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>MR IID</th>
+                <th>Project</th>
+                <th>Status</th>
+                <th>Comments</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in reviews %}
+            <tr>
+                <td>{{ r.mr_iid }}</td>
+                <td>{{ r.project_id }}</td>
+                <td class="{{ 'pass' if r.passed else 'fail' }}">{{ 'PASS' if r.passed else 'FAIL' }}</td>
+                <td>{{ r.comment_count }}</td>
+                <td><a href="/api/dashboard/{{ r.mr_iid }}">View Details</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        <a href="/api/dashboard?page={{ page - 1 }}{% if passed is not none %}&passed={{ passed }}{% endif %}" {% if page <= 1 %}style="pointer-events:none;opacity:0.5"{% endif %}>Previous</a>
+        <span>|</span>
+        <a href="/api/dashboard?page={{ page + 1 }}{% if passed is not none %}&passed={{ passed }}{% endif %}">Next</a>
+    </div>
+
+    <script>
+        const pieCtx = document.getElementById("pieChart").getContext("2d");
+        new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Passed', 'Failed'],
+                datasets: [{
+                    label: 'Review Counts',
+                    data: [{{ stats.pass_count }}, {{ stats.fail_count }}],
+                    backgroundColor: ['#00c853', '#ff1744'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                animation: {
+                    duration: 1200,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+
+        const barCtx = document.getElementById("barChart").getContext("2d");
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Passed', 'Failed'],
+                datasets: [{
+                    label: 'Comment Counts',
+                    data: [{{ stats.pass_comments }}, {{ stats.fail_comments }}],
+                    backgroundColor: ['rgba(0, 200, 83, 0.6)', 'rgba(255, 82, 82, 0.6)'],
+                    borderColor: ['#00c853', '#ff1744'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: { beginAtZero: true }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutBounce'
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
